@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/subject.dart';
 import '../screens/results_screen.dart';
+import '../main.dart';
 
 class QuizScreen extends StatefulWidget {
   final Subject subject;
@@ -16,9 +18,11 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
+class _QuizScreenState extends State<QuizScreen>
+    with TickerProviderStateMixin {
   late List<QuizQuestion> _questions;
   late List<int> _userAnswers;
+  late List<Set<int>> _checkboxAnswers; // For checkbox multi-select
   late List<bool> _answered;
   int _currentQuestion = 0;
   int _score = 0;
@@ -26,36 +30,93 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _hintsEnabled = false;
   bool _quizCompleted = false;
 
+  late AnimationController _questionAnimController;
+  late AnimationController _optionAnimController;
+
   @override
   void initState() {
     super.initState();
     _questions = widget.subject.chapters[widget.chapterIndex].quizQuestions;
     _userAnswers = List.filled(_questions.length, -1);
+    _checkboxAnswers = List.generate(_questions.length, (_) => <int>{});
     _answered = List.filled(_questions.length, false);
+
+    _questionAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _optionAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _questionAnimController.forward();
+    _optionAnimController.forward();
+  }
+
+  @override
+  void dispose() {
+    _questionAnimController.dispose();
+    _optionAnimController.dispose();
+    super.dispose();
   }
 
   void _selectAnswer(int index) {
+    final question = _questions[_currentQuestion];
+
+    if (question.questionType == 'checkbox') {
+      // Toggle checkbox selection
+      setState(() {
+        if (_checkboxAnswers[_currentQuestion].contains(index)) {
+          _checkboxAnswers[_currentQuestion].remove(index);
+        } else {
+          _checkboxAnswers[_currentQuestion].add(index);
+        }
+      });
+      return;
+    }
+
+    // Radio / text — single selection
     if (_answered[_currentQuestion]) return;
     setState(() {
       _userAnswers[_currentQuestion] = index;
       _answered[_currentQuestion] = true;
-      if (index == _questions[_currentQuestion].correctAnswerIndex) {
+      if (index == question.correctAnswerIndex) {
         _score++;
       }
       _showCorrectAnswer = true;
     });
+    _showFeedbackSnackBar(index == question.correctAnswerIndex);
+  }
+
+  void _submitCheckboxAnswer() {
+    final question = _questions[_currentQuestion];
+    if (_answered[_currentQuestion]) return;
+
+    final selectedSet = _checkboxAnswers[_currentQuestion];
+    final correctSet = (question.correctAnswerIndices ?? [question.correctAnswerIndex]).toSet();
+    final isCorrect = selectedSet.length == correctSet.length &&
+        selectedSet.containsAll(correctSet);
+
+    setState(() {
+      _answered[_currentQuestion] = true;
+      if (isCorrect) _score++;
+      _showCorrectAnswer = true;
+    });
+    _showFeedbackSnackBar(isCorrect);
+  }
+
+  void _showFeedbackSnackBar(bool isCorrect) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          index == _questions[_currentQuestion].correctAnswerIndex
-              ? '✅ Correct!'
-              : '❌ Wrong!',
+          isCorrect ? '✅ Correct!' : '❌ Wrong!',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
         ),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        backgroundColor: index == _questions[_currentQuestion].correctAnswerIndex
-            ? Colors.green
-            : Colors.red,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: isCorrect ? const Color(0xFF2ECC71) : const Color(0xFFE74C3C),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -65,9 +126,13 @@ class _QuizScreenState extends State<QuizScreen> {
       _showCorrectAnswer = false;
     });
     if (_currentQuestion < _questions.length - 1) {
+      _questionAnimController.reset();
+      _optionAnimController.reset();
       setState(() {
         _currentQuestion++;
       });
+      _questionAnimController.forward();
+      _optionAnimController.forward();
     } else {
       _completeQuiz();
     }
@@ -77,14 +142,6 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() {
       _quizCompleted = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('🎉 Quiz complete! Score: $_score/${_questions.length}'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
@@ -99,241 +156,505 @@ class _QuizScreenState extends State<QuizScreen> {
     }
 
     final question = _questions[_currentQuestion];
+    final isCheckbox = question.questionType == 'checkbox';
+    final progress = (_currentQuestion + 1) / _questions.length;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '${widget.subject.name} - Quiz',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: widget.subject.color,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              '${_currentQuestion + 1}/${_questions.length}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-          IconButton(
-            icon: Icon(_hintsEnabled ? Icons.lightbulb : Icons.lightbulb_outline),
-            onPressed: () {
-              setState(() {
-                _hintsEnabled = !_hintsEnabled;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(_hintsEnabled ? 'Hints enabled!' : 'Hints disabled!'),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LinearProgressIndicator(
-              value: (_currentQuestion + 1) / _questions.length,
-              backgroundColor: Colors.grey.shade300,
-              valueColor: AlwaysStoppedAnimation<Color>(widget.subject.color),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: widget.subject.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Question ${_currentQuestion + 1}',
-                style: TextStyle(
-                  color: widget.subject.color,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  question.question,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_hintsEnabled && question.explanation != null && _answered[_currentQuestion])
-              Container(
-                padding: const EdgeInsets.all(12),
+      body: CustomScrollView(
+        slivers: [
+          // ── App Bar ──
+          SliverAppBar(
+            pinned: true,
+            backgroundColor: widget.subject.color,
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.shade200),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.lightbulb, size: 20, color: Colors.amber.shade700),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '💡 Hint: ${question.explanation}',
-                        style: TextStyle(
-                          color: Colors.amber.shade800,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+              ),
+              onPressed: () => _showExitConfirmation(),
+            ),
+            title: Text(
+              '${widget.subject.name} Quiz',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                color: Colors.white,
+              ),
+            ),
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_currentQuestion + 1} / ${_questions.length}',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            const SizedBox(height: 12),
-            ...question.options.asMap().entries.map((entry) {
-              final optionIndex = entry.key;
-              final optionText = entry.value;
-              final isSelected = _userAnswers[_currentQuestion] == optionIndex;
-              final isShowCorrect = _showCorrectAnswer && _answered[_currentQuestion];
-              final isCorrect = optionIndex == question.correctAnswerIndex;
-
-              Color? optionColor;
-              if (isShowCorrect && isCorrect) {
-                optionColor = Colors.green.shade100;
-              } else if (isShowCorrect && isSelected && !isCorrect) {
-                optionColor = Colors.red.shade100;
-              } else if (isSelected) {
-                optionColor = widget.subject.color.withValues(alpha: 0.1);
-              }
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  onTap: () => _selectAnswer(optionIndex),
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: optionColor ?? Colors.white,
-                      border: Border.all(
-                        color: isSelected
-                            ? widget.subject.color
-                            : Colors.grey.shade300,
-                        width: isSelected ? 2 : 1,
+            ],
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Progress bar
+                Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeOutCubic,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            widget.subject.color,
+                            widget.subject.color.withValues(alpha: 0.6),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.subject.color.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      borderRadius: BorderRadius.circular(14),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Question badge
+                FadeTransition(
+                  opacity: _questionAnimController,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.2),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: _questionAnimController,
+                      curve: Curves.easeOutCubic,
+                    )),
                     child: Row(
                       children: [
                         Container(
-                          width: 28,
-                          height: 28,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected
-                                ? widget.subject.color
-                                : Colors.grey.shade300,
+                            color: widget.subject.color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Center(
-                            child: Text(
-                              String.fromCharCode(65 + optionIndex),
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.grey[600],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
                           child: Text(
-                            optionText,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: isShowCorrect && isCorrect
-                                  ? Colors.green.shade800
-                                  : isShowCorrect && isSelected && !isCorrect
-                                      ? Colors.red.shade800
-                                      : Colors.black87,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            'Question ${_currentQuestion + 1}',
+                            style: GoogleFonts.inter(
+                              color: widget.subject.color,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
                           ),
                         ),
-                        if (isShowCorrect && isCorrect)
-                          const Icon(Icons.check_circle, color: Colors.green, size: 20),
-                        if (isShowCorrect && isSelected && !isCorrect)
-                          const Icon(Icons.cancel, color: Colors.red, size: 20),
+                        if (isCheckbox) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check_box_rounded,
+                                    size: 14, color: Colors.amber.shade700),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Multi-select',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.amber.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
-              );
-            }),
-            if (question.questionType == 'checkbox' && _answered[_currentQuestion])
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, size: 16, color: Colors.orange),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Select all correct answers (Checkbox question)',
-                      style: TextStyle(fontSize: 13, color: Colors.orange.shade700),
+                const SizedBox(height: 16),
+                // Question card
+                FadeTransition(
+                  opacity: _questionAnimController,
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: Text(
+                      question.question,
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        height: 1.5,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _answered[_currentQuestion]
-                    ? _nextQuestion
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.subject.color,
-                  foregroundColor: Colors.white,
+                const SizedBox(height: 20),
+                // Hint section
+                if (_hintsEnabled &&
+                    question.explanation != null &&
+                    _answered[_currentQuestion])
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.amber.shade100),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.lightbulb_rounded,
+                            size: 20, color: Colors.amber.shade700),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            question.explanation!,
+                            style: GoogleFonts.inter(
+                              color: Colors.amber.shade800,
+                              fontSize: 13,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                // Options
+                ...question.options.asMap().entries.map((entry) {
+                  final optionIndex = entry.key;
+                  final optionText = entry.value;
+
+                  bool isSelected;
+                  if (isCheckbox) {
+                    isSelected =
+                        _checkboxAnswers[_currentQuestion].contains(optionIndex);
+                  } else {
+                    isSelected = _userAnswers[_currentQuestion] == optionIndex;
+                  }
+
+                  final isShowCorrect =
+                      _showCorrectAnswer && _answered[_currentQuestion];
+                  final isCorrect = question.isCorrectAnswer(optionIndex);
+
+                  Color bgColor = Colors.white;
+                  Color borderColor = Colors.grey.shade200;
+                  Color textColor = AppColors.textPrimary;
+
+                  if (isShowCorrect && isCorrect) {
+                    bgColor = const Color(0xFFE8F8F0);
+                    borderColor = const Color(0xFF2ECC71);
+                    textColor = const Color(0xFF27AE60);
+                  } else if (isShowCorrect && isSelected && !isCorrect) {
+                    bgColor = const Color(0xFFFDE8E8);
+                    borderColor = const Color(0xFFE74C3C);
+                    textColor = const Color(0xFFC0392B);
+                  } else if (isSelected) {
+                    bgColor = widget.subject.color.withValues(alpha: 0.06);
+                    borderColor = widget.subject.color;
+                  }
+
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.2, 0),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: _optionAnimController,
+                      curve: Interval(
+                        (optionIndex * 0.15).clamp(0.0, 0.6),
+                        ((optionIndex * 0.15) + 0.4).clamp(0.0, 1.0),
+                        curve: Curves.easeOutCubic,
+                      ),
+                    )),
+                    child: FadeTransition(
+                      opacity: CurvedAnimation(
+                        parent: _optionAnimController,
+                        curve: Interval(
+                          (optionIndex * 0.15).clamp(0.0, 0.6),
+                          ((optionIndex * 0.15) + 0.4).clamp(0.0, 1.0),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: GestureDetector(
+                          onTap: () => _selectAnswer(optionIndex),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: bgColor,
+                              border: Border.all(
+                                color: borderColor,
+                                width: isSelected ? 2 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                // Option letter badge
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    shape: isCheckbox
+                                        ? BoxShape.rectangle
+                                        : BoxShape.circle,
+                                    borderRadius: isCheckbox
+                                        ? BorderRadius.circular(8)
+                                        : null,
+                                    color: isSelected
+                                        ? widget.subject.color
+                                        : Colors.grey.shade100,
+                                  ),
+                                  child: Center(
+                                    child: isCheckbox
+                                        ? Icon(
+                                            isSelected
+                                                ? Icons.check_rounded
+                                                : Icons.crop_square_rounded,
+                                            size: 18,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.grey.shade500,
+                                          )
+                                        : Text(
+                                            String.fromCharCode(
+                                                65 + optionIndex),
+                                            style: GoogleFonts.inter(
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : Colors.grey.shade600,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    optionText,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 15,
+                                      color: textColor,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                                if (isShowCorrect && isCorrect)
+                                  const Icon(Icons.check_circle_rounded,
+                                      color: Color(0xFF2ECC71), size: 22),
+                                if (isShowCorrect && isSelected && !isCorrect)
+                                  const Icon(Icons.cancel_rounded,
+                                      color: Color(0xFFE74C3C), size: 22),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                // Submit checkbox / Next button
+                if (isCheckbox && !_answered[_currentQuestion])
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _checkboxAnswers[_currentQuestion].isNotEmpty
+                          ? _submitCheckboxAnswer
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.subject.color,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade200,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        'Submit Answer',
+                        style: GoogleFonts.inter(
+                            fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                if (_answered[_currentQuestion])
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _nextQuestion,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.subject.color,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _currentQuestion == _questions.length - 1
+                                ? 'Submit Quiz'
+                                : 'Next Question',
+                            style: GoogleFonts.inter(
+                                fontSize: 16, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            _currentQuestion == _questions.length - 1
+                                ? Icons.check_rounded
+                                : Icons.arrow_forward_rounded,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                // Hints toggle
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.grey.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_rounded,
+                        color: _hintsEnabled ? Colors.amber : Colors.grey.shade400,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hints',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              'Show explanations after answering',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch.adaptive(
+                        value: _hintsEnabled,
+                        onChanged: (val) {
+                          setState(() => _hintsEnabled = val);
+                        },
+                        activeTrackColor: Colors.amber,
+                      ),
+                    ],
+                  ),
                 ),
-                child: Text(
-                  _currentQuestion == _questions.length - 1
-                      ? 'Submit Quiz'
-                      : 'Next Question →',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+                const SizedBox(height: 24),
+              ]),
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SwitchListTile(
-                  value: _hintsEnabled,
-                  onChanged: (val) {
-                    setState(() {
-                      _hintsEnabled = val;
-                    });
-                  },
-                  title: const Text('Hints'),
-                  subtitle: const Text('Show explanations'),
-                  secondary: Icon(Icons.lightbulb, color: _hintsEnabled ? Colors.amber : Colors.grey),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ],
-            ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showExitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Exit Quiz?',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
+        content: Text(
+          'Your progress will be lost.',
+          style: GoogleFonts.inter(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel',
+                style: GoogleFonts.inter(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade400,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Exit', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }

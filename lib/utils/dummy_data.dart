@@ -7,7 +7,7 @@ List<Subject> getDummySubjects() {
       name: 'Mathematics',
       description: 'Explore the world of numbers, algebra, geometry, and calculus.',
       icon: '📐',
-      color: Colors.blue,
+      color: const Color(0xFF4A90D9),
       chapters: [
         Chapter(
           title: 'Algebra',
@@ -31,7 +31,8 @@ List<Subject> getDummySubjects() {
               question: 'Select all prime numbers from the list:',
               questionType: 'checkbox',
               options: ['2', '4', '5', '9'],
-              correctAnswerIndex: 2,
+              correctAnswerIndex: 0,
+              correctAnswerIndices: [0, 2], // 2 and 5
               explanation: '2 and 5 are prime numbers.',
             ),
           ],
@@ -62,7 +63,7 @@ List<Subject> getDummySubjects() {
       name: 'Science',
       description: 'Discover the wonders of physics, chemistry, and biology.',
       icon: '🔬',
-      color: Colors.green,
+      color: const Color(0xFF2ECC71),
       chapters: [
         Chapter(
           title: 'Physics',
@@ -99,7 +100,8 @@ List<Subject> getDummySubjects() {
               question: 'Which of these are noble gases? Select all.',
               questionType: 'checkbox',
               options: ['Helium', 'Oxygen', 'Neon', 'Argon'],
-              correctAnswerIndex: 3,
+              correctAnswerIndex: 0,
+              correctAnswerIndices: [0, 2, 3], // Helium, Neon, Argon
               explanation: 'Helium, Neon, and Argon are noble gases.',
             ),
           ],
@@ -110,7 +112,7 @@ List<Subject> getDummySubjects() {
       name: 'History',
       description: 'Journey through the past to understand the present.',
       icon: '📜',
-      color: Colors.brown,
+      color: const Color(0xFF8D6E63),
       chapters: [
         Chapter(
           title: 'Ancient Civilizations',
@@ -124,10 +126,11 @@ List<Subject> getDummySubjects() {
               explanation: 'The Tigris-Euphrates river system is known as the cradle of civilization.',
             ),
             QuizQuestion(
-              question: 'Which dynasty built the Great Wall of China?',
+              question: 'Which dynasties contributed to building the Great Wall of China? Select all.',
               questionType: 'checkbox',
               options: ['Qin', 'Tang', 'Ming', 'Han'],
-              correctAnswerIndex: 3,
+              correctAnswerIndex: 0,
+              correctAnswerIndices: [0, 2, 3], // Qin, Ming, Han
               explanation: 'The Qin, Ming, and Han dynasties all contributed to the Great Wall.',
             ),
           ],
@@ -151,7 +154,7 @@ List<Subject> getDummySubjects() {
       name: 'English',
       description: 'Master the language of global communication.',
       icon: '📖',
-      color: Colors.deepPurple,
+      color: const Color(0xFF9B59B6),
       chapters: [
         Chapter(
           title: 'Grammar',
@@ -168,7 +171,8 @@ List<Subject> getDummySubjects() {
               question: 'Choose all the adjectives in this sentence: "The tall, intelligent student won."',
               questionType: 'checkbox',
               options: ['tall', 'student', 'intelligent', 'won'],
-              correctAnswerIndex: 3,
+              correctAnswerIndex: 0,
+              correctAnswerIndices: [0, 2], // tall, intelligent
               explanation: 'Tall and intelligent are adjectives.',
             ),
           ],
@@ -179,7 +183,7 @@ List<Subject> getDummySubjects() {
       name: 'Geography',
       description: 'Understand the world around you - land, people, and places.',
       icon: '🌍',
-      color: Colors.teal,
+      color: const Color(0xFF00897B),
       chapters: [
         Chapter(
           title: 'Physical Geography',

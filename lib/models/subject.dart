@@ -35,6 +35,7 @@ class QuizQuestion {
   final String questionType;
   final List<String> options;
   final int correctAnswerIndex;
+  final List<int>? correctAnswerIndices; // For checkbox (multi-answer) questions
   final String? explanation;
 
   QuizQuestion({
@@ -42,6 +43,16 @@ class QuizQuestion {
     required this.questionType,
     required this.options,
     required this.correctAnswerIndex,
+    this.correctAnswerIndices,
     this.explanation,
   });
+
+  /// Returns true if the given index is a correct answer,
+  /// checking correctAnswerIndices for checkbox questions.
+  bool isCorrectAnswer(int index) {
+    if (questionType == 'checkbox' && correctAnswerIndices != null) {
+      return correctAnswerIndices!.contains(index);
+    }
+    return index == correctAnswerIndex;
+  }
 }

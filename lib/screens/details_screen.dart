@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/subject.dart';
 import '../screens/quiz_screen.dart';
+import '../main.dart';
 
 class DetailsScreen extends StatefulWidget {
   final Subject subject;
@@ -12,328 +14,559 @@ class DetailsScreen extends StatefulWidget {
 }
 
 class _DetailsScreenState extends State<DetailsScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   int _currentChapterIndex = 0;
-  String _chapterFilter = 'All Chapters';
+  late AnimationController _contentAnimController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: widget.subject.chapters.length, vsync: this);
+    _tabController =
+        TabController(length: widget.subject.chapters.length, vsync: this);
     _tabController.addListener(() {
-      setState(() {
-        _currentChapterIndex = _tabController.index;
-      });
+      if (!_tabController.indexIsChanging) {
+        setState(() {
+          _currentChapterIndex = _tabController.index;
+        });
+        _contentAnimController.reset();
+        _contentAnimController.forward();
+      }
     });
+    _contentAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _contentAnimController.forward();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _contentAnimController.dispose();
     super.dispose();
-  }
-
-  List<String> get _chapterTitles {
-    return ['All Chapters', ...widget.subject.chapters.map((c) => c.title)];
   }
 
   @override
   Widget build(BuildContext context) {
     final subject = widget.subject;
     final chapters = subject.chapters;
+    final chapter = chapters[_currentChapterIndex];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          subject.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: subject.color,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          isScrollable: true,
-          onTap: (index) {
-            setState(() {
-              _currentChapterIndex = index;
-            });
-          },
-          tabs: chapters.map((chapter) => Tab(text: chapter.title)).toList(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-DropdownButtonFormField<String>(
-               initialValue: _chapterFilter,
-              items: _chapterTitles.map((title) {
-                return DropdownMenuItem(
-                  value: title,
-                  child: Text(title),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() {
-                  _chapterFilter = val!;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Showing: $_chapterFilter'),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      body: CustomScrollView(
+        slivers: [
+          // ── Gradient App Bar with Tabs ──
+          SliverAppBar(
+            expandedHeight: 140,
+            floating: false,
+            pinned: true,
+            backgroundColor: subject.color,
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white, size: 18),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              centerTitle: true,
+              title: Text(
+                subject.name,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      subject.color,
+                      subject.color.withValues(alpha: 0.7),
+                    ],
                   ),
-                );
-              },
-              icon: const Icon(Icons.filter_list),
-              decoration: const InputDecoration(
-                labelText: 'Filter Chapters',
-                prefixIcon: Icon(Icons.filter_list),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -40,
+                      right: -20,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 10,
+                      left: -30,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 20),
-            Stack(
-              children: [
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+            bottom: TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white54,
+              indicatorColor: Colors.white,
+              indicatorWeight: 3,
+              indicatorSize: TabBarIndicatorSize.label,
+              isScrollable: true,
+              labelStyle:
+                  GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
+              unselectedLabelStyle:
+                  GoogleFonts.inter(fontWeight: FontWeight.w400, fontSize: 14),
+              tabs:
+                  chapters.map((chapter) => Tab(text: chapter.title)).toList(),
+            ),
+          ),
+          // ── Content ──
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: _contentAnimController,
+                    curve: Curves.easeOut,
                   ),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          subject.color.withValues(alpha: 0.1),
-                          subject.color.withValues(alpha: 0.05),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.05),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: _contentAnimController,
+                      curve: Curves.easeOutCubic,
+                    )),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: subject.color.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(14),
+                        // Chapter content card
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.grey.shade100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: subject.color.withValues(alpha: 0.08),
+                                blurRadius: 20,
+                                offset: const Offset(0, 6),
                               ),
-                              child: Text(
-                                chapters[_currentChapterIndex].title[0],
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: subject.color,
+                            ],
+                          ),
+                          child: Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(14),
+                                          decoration: BoxDecoration(
+                                            color: subject.color
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                          child: Text(
+                                            chapter.title[0],
+                                            style: GoogleFonts.inter(
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.w800,
+                                              color: subject.color,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                chapter.title,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      AppColors.textPrimary,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Icon(Icons.quiz_rounded,
+                                                      size: 14,
+                                                      color: AppColors
+                                                          .textSecondary),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${chapter.quizQuestions.length} Questions',
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 13,
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      height: 1,
+                                      color: Colors.grey.shade100,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Text(
+                                      chapter.content,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 15,
+                                        height: 1.7,
+                                        color: AppColors.textPrimary
+                                            .withValues(alpha: 0.8),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    chapters[_currentChapterIndex].title,
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: subject.color,
+                              // "NEW" badge
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        subject.color,
+                                        subject.color.withValues(alpha: 0.7),
+                                      ],
+                                    ),
+                                    borderRadius: const BorderRadius.only(
+                                      topRight: Radius.circular(24),
+                                      bottomLeft: Radius.circular(14),
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  child: Text(
+                                    'NEW',
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        // Quiz section
+                        Text(
+                          'Chapter Quiz',
+                          style: GoogleFonts.inter(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Test your knowledge with ${chapter.quizQuestions.length} questions',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Question type chips
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: chapter.quizQuestions
+                              .asMap()
+                              .entries
+                              .map((entry) {
+                            final idx = entry.key;
+                            final q = entry.value;
+                            IconData typeIcon;
+                            switch (q.questionType) {
+                              case 'checkbox':
+                                typeIcon = Icons.check_box_rounded;
+                                break;
+                              case 'text':
+                                typeIcon = Icons.text_fields_rounded;
+                                break;
+                              default:
+                                typeIcon = Icons.radio_button_checked_rounded;
+                            }
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: subject.color.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color:
+                                        subject.color.withValues(alpha: 0.15)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(typeIcon,
+                                      size: 16, color: subject.color),
+                                  const SizedBox(width: 6),
                                   Text(
-                                    '${chapters[_currentChapterIndex].quizQuestions.length} Questions',
-                                    style: TextStyle(
+                                    'Q${idx + 1}',
+                                    style: GoogleFonts.inter(
                                       fontSize: 13,
-                                      color: Colors.grey[500],
+                                      fontWeight: FontWeight.w600,
+                                      color: subject.color,
                                     ),
                                   ),
                                 ],
                               ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 28),
+                        // Start Quiz button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: () =>
+                                _showQuizConfirmation(context, subject),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: subject.color,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
                             ),
-                          ],
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.play_arrow_rounded, size: 24),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Start Quiz',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        const Divider(),
                         const SizedBox(height: 12),
-                        Text(
-                          chapters[_currentChapterIndex].content,
-                          style: const TextStyle(fontSize: 15, height: 1.6),
+                        // Read Aloud button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '📖 Reading mode activated for ${chapter.title}',
+                                    style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                  backgroundColor: AppColors.dark,
+                                  margin: const EdgeInsets.all(16),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.volume_up_rounded),
+                            label: Text('Read Aloud',
+                                style: GoogleFonts.inter(
+                                    fontSize: 15, fontWeight: FontWeight.w600)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: subject.color,
+                              side: BorderSide(
+                                  color: subject.color.withValues(alpha: 0.4)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
                         ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: subject.color,
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(20),
-                        bottomLeft: Radius.circular(14),
-                      ),
-                    ),
-                    child: Text(
-                      'NEW',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ]),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Chapter Quiz',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Test your knowledge with ${chapters[_currentChapterIndex].quizQuestions.length} questions',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: chapters[_currentChapterIndex].quizQuestions.asMap().entries.map((entry) {
-                final index = entry.key;
-                final question = entry.value;
-                return ActionChip(
-                  label: Text('Q${index + 1}'),
-                  backgroundColor: Colors.grey.shade100,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Question ${index + 1}: ${question.questionType}'),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _showQuizConfirmation(context, subject);
-                },
-                icon: const Icon(Icons.quiz_rounded),
-                label: const Text('Start Quiz', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: subject.color,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Reading mode activated for ${chapters[_currentChapterIndex].title}'),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.book_rounded),
-                label: const Text('Read Aloud', style: TextStyle(fontSize: 15)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: subject.color,
-                  side: BorderSide(color: subject.color),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   void _showQuizConfirmation(BuildContext context, Subject subject) {
-    showDialog(
+    final chapter = widget.subject.chapters[_currentChapterIndex];
+    showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
+        return Container(
+          padding: const EdgeInsets.all(28),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.school_rounded, color: subject.color, size: 28),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Start Quiz?',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Chapter: ${widget.subject.chapters[_currentChapterIndex].title}'),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: subject.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(Icons.quiz_rounded, size: 40, color: subject.color),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Ready for the Quiz?',
+                style: GoogleFonts.inter(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.book_rounded, 'Chapter: ${chapter.title}'),
               const SizedBox(height: 8),
-              Text('You will be asked ${widget.subject.chapters[_currentChapterIndex].quizQuestions.length} questions.'),
+              _buildInfoRow(Icons.help_outline_rounded,
+                  '${chapter.quizQuestions.length} Questions'),
               const SizedBox(height: 8),
+              _buildInfoRow(
+                  Icons.timer_rounded, 'No time limit — take your time!'),
+              const SizedBox(height: 28),
               Row(
                 children: [
-                  const Icon(Icons.timer, size: 16, color: Colors.orange),
-                  const SizedBox(width: 4),
-                  const Text('No time limit - take your time!'),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => QuizScreen(
-                      subject: subject,
-                      chapterIndex: _currentChapterIndex,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
-                );
-              },
-              child: const Text('Start'),
-            ),
-          ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => QuizScreen(
+                              subject: subject,
+                              chapterIndex: _currentChapterIndex,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: subject.color,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Start Quiz',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         );
       },
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.textSecondary),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }
