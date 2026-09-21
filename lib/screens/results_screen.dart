@@ -93,6 +93,7 @@ class _ResultsScreenState extends State<ResultsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.dark,
       body: CustomScrollView(
         slivers: [
           // ── Gradient Header ──
@@ -259,17 +260,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                             width: double.infinity,
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.cardDark,
                               borderRadius: BorderRadius.circular(20),
                               border:
-                                  Border.all(color: Colors.grey.shade100),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                                  Border.all(color: Colors.white.withValues(alpha: 0.06)),
                             ),
                             child: Column(
                               children: [
@@ -470,16 +464,9 @@ class _ResultsScreenState extends State<ResultsScreen>
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.cardDark,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade100),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Row(
               children: [

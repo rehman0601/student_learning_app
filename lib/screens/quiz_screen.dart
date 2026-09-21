@@ -160,6 +160,7 @@ class _QuizScreenState extends State<QuizScreen>
     final progress = (_currentQuestion + 1) / _questions.length;
 
     return Scaffold(
+      backgroundColor: AppColors.dark,
       body: CustomScrollView(
         slivers: [
           // ── App Bar ──
@@ -212,7 +213,7 @@ class _QuizScreenState extends State<QuizScreen>
                 Container(
                   height: 6,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: FractionallySizedBox(
@@ -308,16 +309,9 @@ class _QuizScreenState extends State<QuizScreen>
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.cardDark,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                     ),
                     child: Text(
                       question.question,
@@ -339,9 +333,9 @@ class _QuizScreenState extends State<QuizScreen>
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
+                      color: Colors.amber.shade900.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.amber.shade100),
+                      border: Border.all(color: Colors.amber.shade700.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,7 +347,7 @@ class _QuizScreenState extends State<QuizScreen>
                           child: Text(
                             question.explanation!,
                             style: GoogleFonts.inter(
-                              color: Colors.amber.shade800,
+                              color: Colors.amber.shade300,
                               fontSize: 13,
                               height: 1.5,
                             ),
@@ -379,20 +373,20 @@ class _QuizScreenState extends State<QuizScreen>
                       _showCorrectAnswer && _answered[_currentQuestion];
                   final isCorrect = question.isCorrectAnswer(optionIndex);
 
-                  Color bgColor = Colors.white;
-                  Color borderColor = Colors.grey.shade200;
+                  Color bgColor = AppColors.cardDark;
+                  Color borderColor = Colors.white.withValues(alpha: 0.1);
                   Color textColor = AppColors.textPrimary;
 
                   if (isShowCorrect && isCorrect) {
-                    bgColor = const Color(0xFFE8F8F0);
+                    bgColor = const Color(0xFF1A3D2A);
                     borderColor = const Color(0xFF2ECC71);
-                    textColor = const Color(0xFF27AE60);
+                    textColor = const Color(0xFF6FCF97);
                   } else if (isShowCorrect && isSelected && !isCorrect) {
-                    bgColor = const Color(0xFFFDE8E8);
+                    bgColor = const Color(0xFF3D1A1A);
                     borderColor = const Color(0xFFE74C3C);
-                    textColor = const Color(0xFFC0392B);
+                    textColor = const Color(0xFFEB5757);
                   } else if (isSelected) {
-                    bgColor = widget.subject.color.withValues(alpha: 0.06);
+                    bgColor = widget.subject.color.withValues(alpha: 0.12);
                     borderColor = widget.subject.color;
                   }
 
@@ -448,7 +442,7 @@ class _QuizScreenState extends State<QuizScreen>
                                         : null,
                                     color: isSelected
                                         ? widget.subject.color
-                                        : Colors.grey.shade100,
+                                        : Colors.white.withValues(alpha: 0.08),
                                   ),
                                   child: Center(
                                     child: isCheckbox
@@ -459,7 +453,7 @@ class _QuizScreenState extends State<QuizScreen>
                                             size: 18,
                                             color: isSelected
                                                 ? Colors.white
-                                                : Colors.grey.shade500,
+                                                : Colors.white.withValues(alpha: 0.4),
                                           )
                                         : Text(
                                             String.fromCharCode(
@@ -467,7 +461,7 @@ class _QuizScreenState extends State<QuizScreen>
                                             style: GoogleFonts.inter(
                                               color: isSelected
                                                   ? Colors.white
-                                                  : Colors.grey.shade600,
+                                                  : Colors.white.withValues(alpha: 0.5),
                                               fontWeight: FontWeight.w700,
                                               fontSize: 14,
                                             ),
@@ -514,7 +508,7 @@ class _QuizScreenState extends State<QuizScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: widget.subject.color,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey.shade200,
+                        disabledBackgroundColor: Colors.white.withValues(alpha: 0.08),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -568,15 +562,15 @@ class _QuizScreenState extends State<QuizScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: AppColors.cardDark,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade100),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.lightbulb_rounded,
-                        color: _hintsEnabled ? Colors.amber : Colors.grey.shade400,
+                        color: _hintsEnabled ? Colors.amber : Colors.white.withValues(alpha: 0.3),
                         size: 22,
                       ),
                       const SizedBox(width: 12),
@@ -625,6 +619,7 @@ class _QuizScreenState extends State<QuizScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Exit Quiz?',

@@ -2,27 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'models/subject.dart';
 import 'screens/subjects_screen.dart';
+import 'screens/details_screen.dart';
 import 'utils/dummy_data.dart';
 
 void main() {
+  GoogleFonts.config.allowRuntimeFetching = false;
   runApp(const MyApp());
 }
 
 // ─── App Colors ────────────────────────────────────────────────
 class AppColors {
-  static const primary = Color(0xFF6C63FF);
+  static const primary = Color(0xFF7C73FF);
   static const secondary = Color(0xFF48C6EF);
   static const accent = Color(0xFFFF6B6B);
-  static const dark = Color(0xFF1E1E2C);
-  static const cardDark = Color(0xFF2A2A3C);
-  static const surface = Color(0xFFF8F9FE);
-  static const textPrimary = Color(0xFF1E1E2C);
-  static const textSecondary = Color(0xFF7C7C8A);
+  static const dark = Color(0xFF0F0F1A);
+  static const cardDark = Color(0xFF1A1A2E);
+  static const surfaceDark = Color(0xFF16162A);
+  static const surface = Color(0xFF0F0F1A);
+  static const textPrimary = Color(0xFFE8E8F0);
+  static const textSecondary = Color(0xFF8888A0);
 
   static const gradientPrimary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFF6C63FF), Color(0xFF48C6EF)],
+  );
+
+  static const gradientDarkBg = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF1A1A3E), Color(0xFF0F0F1A)],
   );
 
   static const gradientWarm = LinearGradient(
@@ -44,15 +53,17 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
-          brightness: Brightness.light,
+          brightness: Brightness.dark,
           surface: AppColors.surface,
         ),
+        scaffoldBackgroundColor: AppColors.dark,
         useMaterial3: true,
-        textTheme: GoogleFonts.interTextTheme(),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
         appBarTheme: AppBarTheme(
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
+          backgroundColor: AppColors.dark,
           titleTextStyle: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -64,7 +75,7 @@ class MyApp extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          color: Colors.white,
+          color: AppColors.cardDark,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -77,14 +88,14 @@ class MyApp extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.grey.shade50,
+          fillColor: AppColors.cardDark,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -141,14 +152,10 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-            ),
-          ],
+          color: AppColors.cardDark,
+          border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+          ),
         ),
         child: SafeArea(
           child: Padding(
@@ -184,7 +191,7 @@ class _MainScreenState extends State<MainScreen> {
           vertical: 10,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -192,7 +199,7 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              color: isSelected ? AppColors.primary : const Color(0xFF5A5A72),
               size: 22,
             ),
             if (isSelected) ...[
@@ -260,12 +267,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final totalChapters = subjects.expand((s) => s.chapters).length;
 
     return Scaffold(
+      backgroundColor: AppColors.dark,
       body: Stack(
+        clipBehavior: Clip.hardEdge,
         children: [
-          // Gradient background
+          // Full gradient background
+          Container(
+            decoration: const BoxDecoration(gradient: AppColors.gradientDarkBg),
+          ),
+          // Top accent gradient
           Container(
             height: MediaQuery.of(context).size.height * 0.45,
-            decoration: const BoxDecoration(gradient: AppColors.gradientPrimary),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.4),
+                  AppColors.secondary.withValues(alpha: 0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
           ),
           // Decorative circles
           Positioned(
@@ -361,24 +384,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: AppColors.cardDark.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                         ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.primary.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
                               ),
                               child: const Icon(Icons.school_rounded, size: 28, color: AppColors.primary),
                             ),
@@ -435,11 +451,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: subjects.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.82,
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 260,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        mainAxisExtent: 180,
                       ),
                       itemBuilder: (context, index) {
                         final subject = subjects[index];
@@ -481,106 +497,151 @@ class _SubjectCard extends StatefulWidget {
 
 class _SubjectCardState extends State<_SubjectCard> {
   bool _isPressed = false;
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final subject = widget.subject;
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SubjectsScreen(selectedSubject: subject),
-          ),
-        );
-      },
-      child: AnimatedScale(
-        scale: _isPressed ? 0.95 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        child: Hero(
-          tag: 'subject_${subject.name}',
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: subject.color.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailsScreen(subject: subject),
             ),
-            child: Stack(
-              children: [
-                // Accent strip
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: subject.color,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(24),
-                        topRight: Radius.circular(24),
+          );
+        },
+        child: AnimatedScale(
+          scale: _isPressed ? 0.95 : (_isHovered ? 1.03 : 1.0),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: Hero(
+            tag: 'subject_${subject.name}',
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    subject.color.withValues(alpha: 0.35),
+                    subject.color.withValues(alpha: 0.12),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: _isHovered
+                      ? subject.color.withValues(alpha: 0.5)
+                      : subject.color.withValues(alpha: 0.15),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: subject.color.withValues(alpha: _isHovered ? 0.25 : 0.1),
+                    blurRadius: _isHovered ? 30 : 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  // Decorative circle
+                  Positioned(
+                    top: -20,
+                    right: -20,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: subject.color.withValues(alpha: 0.15),
                       ),
                     ),
                   ),
-                ),
-                // Content
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: subject.color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(subject.icon, style: const TextStyle(fontSize: 36)),
+                  Positioned(
+                    bottom: -30,
+                    left: -15,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: subject.color.withValues(alpha: 0.08),
                       ),
-                      const SizedBox(height: 14),
-                      Text(
-                        subject.name,
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                    ),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: subject.color.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(subject.icon, style: const TextStyle(fontSize: 30)),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: subject.color.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${subject.chapters.length} Chapters',
+                        const Spacer(),
+                        Text(
+                          subject.name,
                           style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: subject.color,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: subject.color.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${subject.chapters.length} Chapters',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: subject.color,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  // Arrow indicator
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: AnimatedOpacity(
+                      opacity: _isHovered ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -607,6 +668,7 @@ class _MoreScreenState extends State<MoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.dark,
       body: CustomScrollView(
         slivers: [
           // Gradient App Bar
@@ -666,7 +728,7 @@ class _MoreScreenState extends State<MoreScreen> {
                         _showSnackBar(context, val ? '🌙 Dark mode enabled' : '☀️ Light mode enabled');
                       },
                     ),
-                    Divider(height: 1, color: Colors.grey.shade100),
+                    Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
                     _buildSwitchTile(
                       icon: Icons.notifications_rounded,
                       iconColor: const Color(0xFFFF9F43),
@@ -724,12 +786,12 @@ class _MoreScreenState extends State<MoreScreen> {
                                     decoration: BoxDecoration(
                                       color: isSelected
                                           ? AppColors.primary
-                                          : Colors.grey.shade50,
+                                          : AppColors.surfaceDark,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isSelected
                                             ? AppColors.primary
-                                            : Colors.grey.shade200,
+                                            : Colors.white.withValues(alpha: 0.1),
                                       ),
                                     ),
                                     child: Center(
@@ -800,13 +862,13 @@ class _MoreScreenState extends State<MoreScreen> {
                         style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red.shade600,
+                        backgroundColor: Colors.red.shade900.withValues(alpha: 0.3),
+                        foregroundColor: Colors.red.shade300,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: Colors.red.shade100),
+                          side: BorderSide(color: Colors.red.shade800.withValues(alpha: 0.5)),
                         ),
                       ),
                     ),
@@ -841,16 +903,9 @@ class _MoreScreenState extends State<MoreScreen> {
   Widget _buildSettingsCard({required List<Widget> children}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),

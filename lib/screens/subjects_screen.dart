@@ -52,6 +52,7 @@ class _SubjectsScreenState extends State<SubjectsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.dark,
       body: CustomScrollView(
         slivers: [
           // ── App Bar ──
@@ -147,14 +148,14 @@ class _SubjectsScreenState extends State<SubjectsScreen>
                 duration: const Duration(milliseconds: 300),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                color: Colors.white,
+                color: AppColors.dark,
                 child: TextField(
                   controller: _searchController,
                   autofocus: true,
                   onChanged: (val) {
                     setState(() => _searchQuery = val);
                   },
-                  style: GoogleFonts.inter(fontSize: 15),
+                  style: GoogleFonts.inter(fontSize: 15, color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Search subjects...',
                     hintStyle: GoogleFonts.inter(color: AppColors.textSecondary),
@@ -172,7 +173,7 @@ class _SubjectsScreenState extends State<SubjectsScreen>
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: AppColors.cardDark,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
@@ -251,6 +252,7 @@ class _SubjectsScreenState extends State<SubjectsScreen>
 
   Widget _buildDrawer() {
     return Drawer(
+      backgroundColor: AppColors.dark,
       child: Column(
         children: [
           // Drawer header
@@ -406,9 +408,9 @@ class _SubjectListCardState extends State<_SubjectListCard> {
         duration: const Duration(milliseconds: 120),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             boxShadow: [
               BoxShadow(
                 color: subject.color.withValues(alpha: 0.08),
@@ -493,11 +495,11 @@ class _SubjectListCardState extends State<_SubjectListCard> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(Icons.arrow_forward_ios_rounded,
-                      size: 14, color: Colors.grey.shade400),
+                      size: 14, color: Colors.white.withValues(alpha: 0.3)),
                 ),
               ),
             ],
